@@ -216,6 +216,7 @@ private val sendTextPoints = command<CommandSender>("sendTextPoints") {
 
 val rootCommand = command<CommandSender>("luochuanredpacket") {
     description = "主命令"
+    permission = "luochuanredpacket.command"
     sub(toggleCommand)
     sub(get)
     sub(sendVault)
