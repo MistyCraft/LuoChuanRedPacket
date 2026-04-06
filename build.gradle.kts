@@ -69,7 +69,7 @@ repositories {
 dependencies {
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     compileOnly(kotlin("stdlib-jdk8"))
-    compileOnly("io.papermc.paper:paper-api:1.16.5-R0.1-SNAPSHOT")
+    compileOnly("public:paper:1.16.5")
     compileOnly(fileTree("libs"))
 }
 

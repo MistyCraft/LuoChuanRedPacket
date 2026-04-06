@@ -1,7 +1,6 @@
 package com.xbaimiao.luochuan.redpacket.redis
 
-import com.xbaimiao.easylib.util.DistributedLock
-import com.xbaimiao.easylib.util.buildDistributedLock
+import com.xbaimiao.easylib.util.RedisDistributedLock
 import com.xbaimiao.easylib.util.info
 import com.xbaimiao.easylib.util.submit
 import com.xbaimiao.luochuan.redpacket.core.ConfigManager
@@ -16,10 +15,10 @@ import java.util.concurrent.TimeUnit
 class RedisManager {
 
     private val channel = "LuoChuanRedPacket"
+    private val lockNamePrefix = "${channel}_packet"
 
     private lateinit var jedisPool: JedisPool
     private lateinit var subscribeThread: Thread
-    private lateinit var distributedLock: DistributedLock
     private var cancel = false
     private val subscribe = OnRedisMessage()
 
@@ -29,6 +28,10 @@ class RedisManager {
 
     private fun toRedisKey(id: String): String {
         return "$channel:${id}"
+    }
+
+    private fun <T> withPacketLock(id: String, timeout: Long = 10_000L, action: () -> T): T {
+        return RedisDistributedLock(jedisPool, "${lockNamePrefix}_${id}").withLock(timeout, action)
     }
 
     fun push(message: RedisMessage) {
@@ -106,11 +109,11 @@ class RedisManager {
     fun getRedPacket(player: Player, id: String, func: RedPacket?.() -> Unit) {
         submit(async = true) {
             gettingSet.add(player.name + id)
-            distributedLock.withLock(id) {
+            withPacketLock(id) {
                 val redPacket = jedisPool.resource.use { it.get(toRedisKey(id)) }
                 if (redPacket == null) {
                     func.invoke(null)
-                    return@withLock
+                    return@withPacketLock
                 }
                 try {
                     val packet = RedPacket.deserialize(redPacket)
@@ -150,7 +153,6 @@ class RedisManager {
             jedisPool.resource.subscribe(subscribe, channel)
         }
         subscribeThread.start()
-        distributedLock = buildDistributedLock(jedisPool)
 
         info("Redis连接成功")
     }

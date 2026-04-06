@@ -4,6 +4,7 @@ import com.google.common.cache.CacheBuilder
 import com.xbaimiao.easylib.bridge.economy.Economy
 import com.xbaimiao.easylib.bridge.economy.EconomyManager
 import com.xbaimiao.easylib.bridge.economy.PlayerPoints
+import com.xbaimiao.easylib.bridge.economy.Vault
 import com.xbaimiao.easylib.chat.Lang.sendLang
 import com.xbaimiao.easylib.command.ArgNode
 import com.xbaimiao.easylib.command.CommandContext
@@ -335,7 +336,7 @@ private fun checkText(context: CommandContext<*>, data: SendData): Boolean {
  * 检查玩家强制执行的权限 和是否有足够的货币
  */
 private fun checkForceAndEconomy(
-    context: CommandContext<*>, forceArg: ArgNode<Boolean>, economy: Economy, data: SendData,
+    context: CommandContext<*>, forceArg: ArgNode<Boolean>, economy: Vault, data: SendData,
 ): Boolean {
     val force = context.valueOfOrNull(forceArg) ?: false
 
@@ -352,14 +353,36 @@ private fun checkForceAndEconomy(
             return false
         }
         if (!economy.has(player, data.money.toDouble())) {
-            if (economy is PlayerPoints) {
-                context.sender.sendLang("redpacket.send-no-money-points")
-            } else {
-                context.sender.sendLang("redpacket.send-no-money")
-            }
+            context.sender.sendLang("redpacket.send-no-money")
             return false
         }
         economy.take(player, data.money.toDouble())
+    }
+    return true
+}
+
+private fun checkForceAndEconomy(
+    context: CommandContext<*>, forceArg: ArgNode<Boolean>, economy: PlayerPoints, data: SendData,
+): Boolean {
+    val force = context.valueOfOrNull(forceArg) ?: false
+
+    // 如果想强制发送 但执行者不是OP
+    if (force && !context.sender.isOp) {
+        context.sender.sendLang("command.no-permission")
+        return false
+    }
+
+    if (!force) {
+        val player = context.sender as? Player
+        if (player == null) {
+            context.sender.sendLang("command.force-only-player")
+            return false
+        }
+        if (!economy.has(player, data.money)) {
+            context.sender.sendLang("redpacket.send-no-money-points")
+            return false
+        }
+        economy.take(player, data.money)
     }
     return true
 }

@@ -53,7 +53,7 @@ data class PointsRedPacket(
         remainMoney -= money
         remainNum--
 
-        EconomyManager.playerPoints.give(player, money.toDouble())
+        EconomyManager.playerPoints.give(player, money)
         sendList[player.name] = money
 
         LuoChuanRedPacket.redisManager.push(
